@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"net/http"
+	"encoding/json"
 )
 
 // MapHandler will return an http.HandlerFunc (which also
@@ -40,12 +41,12 @@ func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.Handl
 //
 // See MapHandler to create a similar http.HandlerFunc via
 // a mapping of paths to urls.
-type pathMap struct {
-	Path string `yaml:"path"`
-	Url string `yaml:"url"`
+type pathList struct {
+	Path string `yaml:"path" json:"path"`
+	Url string `yaml:"url" json:"url"`
 }
+
 func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
-	// TODO: Implement this...
 	parsedYaml, err := parseYAML(yml)
 	if err != nil {
 		return nil, err
@@ -54,8 +55,8 @@ func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 	return MapHandler(pathMap, fallback), nil
 }
 
-func parseYAML(yml []byte) ([]pathMap, error) {
-	var routes []pathMap
+func parseYAML(yml []byte) ([]pathList, error) {
+	var routes []pathList
 	if err := yaml.Unmarshal(yml, &routes); err != nil {
 		return nil, err
 	}
@@ -63,11 +64,27 @@ func parseYAML(yml []byte) ([]pathMap, error) {
 	return routes, nil
 }
 
-func buildMap(routes []pathMap) map[string]string {
+func buildMap(routes []pathList) map[string]string {
 	store := make(map[string]string)
 	for _, route := range routes {
-		//fmt.Println(route)
 		store[route.Path] = route.Url
 	}
 	return store
+}
+
+func JSONHandler(json []byte, fallback http.Handler) (http.HandlerFunc, error) {
+	jsonData, err := parseJSON(json)
+	if err != nil {
+		return nil ,err
+	}
+	pathMap := buildMap(jsonData)
+	return MapHandler(pathMap, fallback), nil
+}
+
+func parseJSON(data []byte) ([]pathList, error) {
+	var paths []pathList
+	if err := json.Unmarshal(data, &paths); err != nil {
+		return nil, err
+	}
+	return paths, nil
 }
